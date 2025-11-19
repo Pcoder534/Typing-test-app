@@ -10,7 +10,7 @@ let isRunning = false;
 let randomWords = [];
 let isGeneratingWords = false;
 let needsKeyboardFix = null;
-let previousInputLength = 0; // Track previous input length
+let previousInputLength = 0;
 
 const timeSelection = document.getElementById('timeSelection');
 const practiceScreen = document.getElementById('practiceScreen');
@@ -53,6 +53,12 @@ function exitFullscreen() {
     }
 }
 
+// Capitalize first letter of a word
+function capitalizeWord(word) {
+    if (word.length === 0) return word;
+    return word.charAt(0).toUpperCase() + word.slice(1);
+}
+
 // Fix last character if UK keyboard detected
 function fixLastCharacter(text) {
     if (!needsKeyboardFix || text.length === 0) return text;
@@ -60,7 +66,6 @@ function fixLastCharacter(text) {
     const lastChar = text[text.length - 1];
     let fixedChar = lastChar;
     
-    // Apply UK to US keyboard mappings
     if (lastChar === '@') fixedChar = '"';
     else if (lastChar === '"') fixedChar = '@';
     else if (lastChar === '£') fixedChar = '#';
@@ -178,8 +183,21 @@ function generateRandomWords(count = 300) {
         return [word];
     });
     
-    console.log('Generated', splitWords.length, 'words');
-    return splitWords;
+    // Randomly capitalize 10% of words for practice
+    const finalWords = splitWords.map(word => {
+        // Skip if word is already capitalized or has punctuation
+        const hasUpperCase = /[A-Z]/.test(word);
+        const hasPunctuation = /[.,!?;:"']/.test(word);
+        
+        // 10% chance to capitalize if word is not already special
+        if (!hasUpperCase && !hasPunctuation && Math.random() < 0.10) {
+            return capitalizeWord(word);
+        }
+        return word;
+    });
+    
+    console.log('Generated', finalWords.length, 'words (with random capitalization)');
+    return finalWords;
 }
 
 function addMoreWords(count = 300) {
@@ -290,7 +308,7 @@ async function startPractice(duration) {
     currentWordIndex = 0;
     correctWords = 0;
     totalWords = 0;
-    previousInputLength = 0; // Reset length tracker
+    previousInputLength = 0;
     
     randomWords = generateRandomWords(300);
     displayWords();
@@ -348,7 +366,7 @@ typingInput.addEventListener('input', (e) => {
     const currentValue = typingInput.value;
     const currentLength = currentValue.length;
     
-    // Only fix if we're ADDING characters (not backspacing/deleting)
+    // Only fix if we're ADDING characters (not backspacing)
     if (currentLength > previousInputLength) {
         const fixedValue = fixLastCharacter(currentValue);
         
@@ -359,7 +377,6 @@ typingInput.addEventListener('input', (e) => {
         }
     }
     
-    // Update previous length
     previousInputLength = typingInput.value.length;
     
     const typedWord = typingInput.value.trim();
@@ -390,7 +407,7 @@ typingInput.addEventListener('input', (e) => {
         }
         
         typingInput.value = '';
-        previousInputLength = 0; // Reset when clearing input
+        previousInputLength = 0;
         updateStats();
     }
 });
