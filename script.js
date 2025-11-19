@@ -9,6 +9,8 @@ let totalWords = 0;
 let isRunning = false;
 let randomWords = [];
 let isGeneratingWords = false;
+let needsKeyboardFix = null;
+let previousInputLength = 0; // Track previous input length
 
 const timeSelection = document.getElementById('timeSelection');
 const practiceScreen = document.getElementById('practiceScreen');
@@ -51,18 +53,94 @@ function exitFullscreen() {
     }
 }
 
+// Fix last character if UK keyboard detected
+function fixLastCharacter(text) {
+    if (!needsKeyboardFix || text.length === 0) return text;
+    
+    const lastChar = text[text.length - 1];
+    let fixedChar = lastChar;
+    
+    // Apply UK to US keyboard mappings
+    if (lastChar === '@') fixedChar = '"';
+    else if (lastChar === '"') fixedChar = '@';
+    else if (lastChar === '£') fixedChar = '#';
+    
+    return text.slice(0, -1) + fixedChar;
+}
+
+// Check keyboard layout before starting
+function checkKeyboardLayout() {
+    return new Promise((resolve) => {
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        `;
+        
+        const dialog = document.createElement('div');
+        dialog.style.cssText = `
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 400px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        `;
+        
+        dialog.innerHTML = `
+            <h2 style="margin-bottom: 20px; color: #333;">Keyboard Check</h2>
+            <p style="margin-bottom: 20px; color: #666; font-size: 16px;">
+                Please press <strong>Shift + '</strong> to type a double quote character: <strong>"</strong>
+            </p>
+            <input type="text" id="keyboardTest" 
+                   style="width: 100%; padding: 15px; font-size: 24px; text-align: center; 
+                          border: 2px solid #667eea; border-radius: 10px; margin-bottom: 10px;"
+                   maxlength="1" autofocus autocapitalize="off" autocorrect="off" spellcheck="false">
+            <p style="color: #999; font-size: 14px;">Type the " character to continue</p>
+        `;
+        
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+        
+        const testInput = dialog.querySelector('#keyboardTest');
+        testInput.focus();
+        
+        testInput.addEventListener('input', () => {
+            const typedChar = testInput.value;
+            
+            if (typedChar === '"') {
+                needsKeyboardFix = false;
+                document.body.removeChild(overlay);
+                resolve();
+            } else if (typedChar === '@') {
+                needsKeyboardFix = true;
+                document.body.removeChild(overlay);
+                resolve();
+            } else {
+                testInput.value = '';
+            }
+        });
+    });
+}
+
 // Load words from Monkeytype format JSON
 async function loadWords() {
     try {
         const response = await fetch('words.json');
         const data = await response.json();
         
-        // Check if it's Monkeytype format with "words" array
         if (data.words && Array.isArray(data.words)) {
             allWords = data.words;
             console.log(`Loaded ${allWords.length} words from ${data.name || 'word list'}`);
         } else if (Array.isArray(data)) {
-            // If it's just an array of words
             allWords = data;
             console.log(`Loaded ${allWords.length} words`);
         } else {
@@ -70,7 +148,6 @@ async function loadWords() {
             allWords = ['the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have', 'it'];
         }
         
-        // Load punctuated phrases if available
         if (data.punctuated && Array.isArray(data.punctuated)) {
             punctuatedPhrases = data.punctuated;
             console.log(`Loaded ${punctuatedPhrases.length} punctuated phrases`);
@@ -86,16 +163,14 @@ async function loadWords() {
 function generateRandomWords(count = 300) {
     let tempWords = [];
     
-    // 95% words from main list, 5% punctuated phrases (if available)
     for (let i = 0; i < count; i++) {
-        if (Math.random() < 0.80 || punctuatedPhrases.length === 0) {
+        if (Math.random() < 0.95 || punctuatedPhrases.length === 0) {
             tempWords.push(allWords[Math.floor(Math.random() * allWords.length)]);
         } else {
             tempWords.push(punctuatedPhrases[Math.floor(Math.random() * punctuatedPhrases.length)]);
         }
     }
     
-    // Split multi-word phrases into individual words
     const splitWords = tempWords.flatMap(word => {
         if (word.includes(' ')) {
             return word.split(' ').filter(w => w.trim().length > 0);
@@ -107,7 +182,6 @@ function generateRandomWords(count = 300) {
     return splitWords;
 }
 
-// Add more words dynamically
 function addMoreWords(count = 300) {
     if (isGeneratingWords) {
         return;
@@ -200,10 +274,14 @@ function checkAndAddMoreWords() {
     }
 }
 
-function startPractice(duration) {
+async function startPractice(duration) {
     if (allWords.length === 0) {
         alert('Please wait, words are still loading...');
         return;
+    }
+    
+    if (needsKeyboardFix === null) {
+        await checkKeyboardLayout();
     }
     
     totalTime = duration;
@@ -212,6 +290,7 @@ function startPractice(duration) {
     currentWordIndex = 0;
     correctWords = 0;
     totalWords = 0;
+    previousInputLength = 0; // Reset length tracker
     
     randomWords = generateRandomWords(300);
     displayWords();
@@ -262,12 +341,30 @@ function resetToTimeSelection() {
     customTimeInput.value = '';
 }
 
+// Input handler with automatic character fixing
 typingInput.addEventListener('input', (e) => {
     if (!isRunning) return;
     
-    const typedWord = e.target.value.trim();
+    const currentValue = typingInput.value;
+    const currentLength = currentValue.length;
     
-    if (e.target.value.endsWith(' ')) {
+    // Only fix if we're ADDING characters (not backspacing/deleting)
+    if (currentLength > previousInputLength) {
+        const fixedValue = fixLastCharacter(currentValue);
+        
+        if (currentValue !== fixedValue) {
+            const cursorPos = typingInput.selectionStart;
+            typingInput.value = fixedValue;
+            typingInput.selectionStart = typingInput.selectionEnd = cursorPos;
+        }
+    }
+    
+    // Update previous length
+    previousInputLength = typingInput.value.length;
+    
+    const typedWord = typingInput.value.trim();
+    
+    if (typingInput.value.endsWith(' ')) {
         const currentWord = randomWords[currentWordIndex];
         totalWords++;
         
@@ -293,6 +390,7 @@ typingInput.addEventListener('input', (e) => {
         }
         
         typingInput.value = '';
+        previousInputLength = 0; // Reset when clearing input
         updateStats();
     }
 });
