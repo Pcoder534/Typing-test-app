@@ -1,3 +1,85 @@
+// Language selection variables
+// Language selection variables
+// Language selection variables
+let selectedLanguage = null;
+let originalEnglishWords = [];
+let originalEnglishPhrases = [];
+const languageSelection = document.getElementById('languageSelection');
+const langBtns = document.querySelectorAll('.lang-btn');
+const backToLangBtn = document.getElementById('backToLangBtn');
+
+// Language selection handler
+langBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        selectedLanguage = btn.getAttribute('data-lang');
+        languageSelection.style.display = 'none';
+        
+        if (selectedLanguage === 'hindi') {
+            // Save English words before switching to Hindi
+            if (allWords.length > 0 && originalEnglishWords.length === 0) {
+                originalEnglishWords = [...allWords];
+                originalEnglishPhrases = [...punctuatedPhrases];
+            }
+            // Initialize Hindi mode
+            initHindiMode();
+        } else {
+            // English mode - restore original English words
+            if (originalEnglishWords.length > 0) {
+                allWords = [...originalEnglishWords];
+                punctuatedPhrases = [...originalEnglishPhrases];
+            }
+            // Make sure we're in English mode
+            resetToEnglishMode();
+            // Show time selection for English
+            document.getElementById('timeSelection').style.display = 'block';
+        }
+    });
+});
+// Back to language button handler
+backToLangBtn.addEventListener('click', () => {
+    goBackToLanguageSelection();
+});
+
+// Function to go back to language selection
+// Function to go back to language selection
+function goBackToLanguageSelection() {
+    document.getElementById('timeSelection').style.display = 'none';
+    languageSelection.style.display = 'block';
+    
+    // Reset language
+    selectedLanguage = null;
+    
+    // Fully reset to English mode
+    resetToEnglishMode();
+}
+// Function to fully reset to English mode
+// Function to fully reset to English mode
+function resetToEnglishMode() {
+    // Call Hindi disable function if it exists
+    if (typeof disableHindiMode === 'function') {
+        disableHindiMode();
+    }
+    
+    // Restore original English words
+    if (originalEnglishWords.length > 0) {
+        allWords = [...originalEnglishWords];
+        punctuatedPhrases = [...originalEnglishPhrases];
+    }
+    
+    // Clear old words
+    randomWords = [];
+    document.getElementById('wordDisplay').innerHTML = '';
+    
+    // Reset input state
+    const typingInput = document.getElementById('typingInput');
+    typingInput.value = '';
+    previousInputLength = 0;
+    
+    console.log('Reset to English mode complete');
+}
+// Rest of your existing script.js code continues below...
+
+
 let allWords = [];
 let punctuatedPhrases = [];
 let totalTime = 300;
@@ -7,6 +89,7 @@ let currentWordIndex = 0;
 let correctWords = 0;
 let totalWords = 0;
 let isRunning = false;
+let timerStarted = false; // New: track if timer has started
 let randomWords = [];
 let isGeneratingWords = false;
 let needsKeyboardFix = null;
@@ -71,6 +154,15 @@ function fixLastCharacter(text) {
     else if (lastChar === '£') fixedChar = '#';
     
     return text.slice(0, -1) + fixedChar;
+}
+
+// Start the timer (called on first keystroke)
+function startTimer() {
+    if (!timerStarted) {
+        timerStarted = true;
+        timer = setInterval(updateTimer, 1000);
+        console.log('Timer started!');
+    }
 }
 
 // Check keyboard layout before starting
@@ -185,11 +277,9 @@ function generateRandomWords(count = 300) {
     
     // Randomly capitalize 10% of words for practice
     const finalWords = splitWords.map(word => {
-        // Skip if word is already capitalized or has punctuation
         const hasUpperCase = /[A-Z]/.test(word);
         const hasPunctuation = /[.,!?;:"']/.test(word);
         
-        // 10% chance to capitalize if word is not already special
         if (!hasUpperCase && !hasPunctuation && Math.random() < 0.10) {
             return capitalizeWord(word);
         }
@@ -305,6 +395,7 @@ async function startPractice(duration) {
     totalTime = duration;
     timeLeft = duration;
     isRunning = true;
+    timerStarted = false; // Timer will start on first keystroke
     currentWordIndex = 0;
     correctWords = 0;
     totalWords = 0;
@@ -324,7 +415,7 @@ async function startPractice(duration) {
     timerDisplay.textContent = formatTime(timeLeft);
     updateStats();
     
-    timer = setInterval(updateTimer, 1000);
+    // Don't start timer here - wait for first keystroke
     
     enterFullscreen();
     
@@ -333,6 +424,7 @@ async function startPractice(duration) {
 
 function endPractice() {
     isRunning = false;
+    timerStarted = false;
     clearInterval(timer);
     typingInput.disabled = true;
     
@@ -353,15 +445,24 @@ function endPractice() {
 }
 
 function resetToTimeSelection() {
-    typingInput.disabled = false;
     resultsDiv.style.display = 'none';
-    timeSelection.style.display = 'block';
+    languageSelection.style.display = 'block';
     customTimeInput.value = '';
+    
+    // Reset language
+    selectedLanguage = null;
+    
+    // Fully reset to English mode
+    resetToEnglishMode();
 }
-
 // Input handler with automatic character fixing
 typingInput.addEventListener('input', (e) => {
     if (!isRunning) return;
+    
+    // Start timer on first keystroke
+    if (!timerStarted) {
+        startTimer();
+    }
     
     const currentValue = typingInput.value;
     const currentLength = currentValue.length;

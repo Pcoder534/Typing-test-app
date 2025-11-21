@@ -10,8 +10,18 @@
     <div class="container">
         <h1>Typing Practice</h1>
         
+        <!-- Language Selection Screen -->
+        <div id="languageSelection">
+            <h2>Select Language / भाषा चुनें</h2>
+            <div class="language-buttons">
+                <button class="lang-btn" data-lang="english">English</button>
+                <button class="lang-btn" data-lang="hindi">हिन्दी (Hindi)</button>
+            </div>
+        </div>
+
         <!-- Time Selection Screen -->
-        <div id="timeSelection">
+        <div id="timeSelection" style="display: none;">
+            <button id="backToLangBtn" class="back-btn">← Back to Language</button>
             <h2>Select Practice Duration</h2>
             <div class="time-options">
                 <button class="time-btn" data-time="60">1 Minute</button>
@@ -66,6 +76,9 @@
             <button id="restartBtn">Practice Again</button>
         </div>
     </div>
+    
+    <!-- Load scripts -->
     <script src="script.js"></script>
+    <script src="hindi.js"></script>
 </body>
 </html>

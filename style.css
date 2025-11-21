@@ -395,3 +395,82 @@ h2 {
         width: 100%;
     }
 }
+
+/* Language Selection Styles */
+#languageSelection {
+    text-align: center;
+    padding: 20px 0;
+}
+
+.language-buttons {
+    display: flex;
+    gap: 30px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 30px;
+}
+
+.lang-btn {
+    padding: 30px 50px;
+    font-size: 1.5rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 15px;
+    cursor: pointer;
+    transition: transform 0.3s, box-shadow 0.3s;
+    font-weight: bold;
+    min-width: 200px;
+}
+
+.lang-btn:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+}
+
+.lang-btn:active {
+    transform: translateY(-2px);
+}
+
+/* Hindi Mode Styles - ONLY font changes, NO size changes */
+body.hindi-mode #wordDisplay {
+    font-family: 'Mangal', 'Noto Sans Devanagari', 'Arial Unicode MS', sans-serif;
+}
+
+body.hindi-mode .word {
+    font-family: 'Mangal', 'Noto Sans Devanagari', 'Arial Unicode MS', sans-serif;
+}
+
+/* Hindi input - keeps EXACT same size as English */
+body.hindi-mode #typingInput {
+    font-family: 'Mangal', 'Noto Sans Devanagari', 'Arial Unicode MS', sans-serif !important;
+}
+
+#typingInput[lang="hi"] {
+    font-family: 'Mangal', 'Noto Sans Devanagari', 'Arial Unicode MS', sans-serif !important;
+}
+
+/* Back to Language button */
+.back-btn {
+    position: absolute;
+    top: 0px;
+    left: 20px;
+    padding: 10px 20px;
+    font-size: 14px;
+    background: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s;
+    font-weight: 600;
+}
+
+.back-btn:hover {
+    background: #5a6268;
+}
+
+#timeSelection {
+    position: relative;
+    padding-top: 50px;
+}
